@@ -11,20 +11,16 @@ static void print_help(void)
     printf("--logo <name>   Displays the distro logo.\n");
 }
 
-static int display_logo(char *distro)
+static Logo *find_logo(char *distro)
 {
 	for (int i = 0; i < LOGO_COUNT; i++)
 	{
 		if (strcmp(distro, logos[i].name) == 0)
 		{
-			printf("%s", logos[i].ascii);
-			return 0;
+			return &logos[i];
 		}
 	}
-
-
-	printf("gfetch: unknown distro '%s'.\n", distro);
-	return 1;
+	return NULL;
 }
 
 int main(int argc, char **argv)
@@ -75,19 +71,59 @@ int main(int argc, char **argv)
 			return 1;
 		}
 	}
+	
+	char info_lines[8][128] = {0};
+	int info_count = 0;
+	
+	char logo_lines[16][64];
+    	int logo_count = 0;
+
+
+	if (show_kernel) snprintf(info_lines[info_count++], 128 ,"Kernel");
+	if (show_mem) snprintf(info_lines[info_count++], 128 ,"Mem");
 
 	if (distro != NULL)
+	{	
+		const Logo *logo = find_logo(distro);
+		
+		if (logo == NULL)
+		{
+			printf("gfetch: unknown distro '%s'.\n", distro);
+			return 1;
+		}
+
+		char buf[512];
+		strncpy(buf, logo->ascii, sizeof(buf) - 1);
+		buf[sizeof(buf) - 1] = '\0';
+		
+		char *line = strtok(buf, "\n");
+		while (line != NULL && logo_count < 16)
+		{
+			strncpy(logo_lines[logo_count++], line, 63);
+			line = strtok(NULL, "\n");
+		}
+	} 
+
+	int total_rows = (logo_count > info_count) ? logo_count : info_count;
+	for (int row = 0; row < total_rows; row++)
 	{
-		display_logo(distro);
+		if (row < logo_count)
+		{
+			printf("%-*s", 10, logo_lines[row]);
+		}
+		else
+		{
+			printf("%-*s", 10, "");
+		}
+		if (row < info_count)
+		{
+			printf(" %s", info_lines[row]);
+		}
+
+		printf("\n");
 	}
-	if (show_kernel)
-	{
-		printf("kernel\n");
-	}
-	if (show_mem)
-	{
-		printf("mem\n");
-	}
+
+
 
 	return 0;
 	
