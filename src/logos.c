@@ -12,4 +12,4 @@ const Logo logos[] = {
 	}
 };
 
-const int LOGO_COUNT = sizeof(logos) / sizeof(logos[0]);
+const int logo_count = sizeof(logos) / sizeof(logos[0]);

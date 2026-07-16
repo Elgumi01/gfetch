@@ -7,6 +7,6 @@ typedef struct {
 } Logo;
 
 extern const Logo logos[];
-extern const int LOGO_COUNT;
+extern const int logo_count;
 
 #endif
