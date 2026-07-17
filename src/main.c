@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
 
-#include "logos.h"
 #include "info.h"
 #include "config.h"
 
@@ -12,36 +12,28 @@ static void print_help(void)
 {
     printf("Usage: gfetch [OPTION]...\n");
     printf("Minimalist and lightweight fetch\n\n");
-    printf("--help          Display a short overview of available options.\n");
-    printf("--version       Display gfetch version.\n");
-    printf("--logo <name>   Displays the distro logo.\n");
-    printf("--prompt        Displays the user and hostname like a prompt.\n");
-    printf("--mem           Displays the used memory and total memory.\n");
-    printf("--kernel        Displays the kernel in use.\n");
-    printf("--all           Display all available information.\n");
+    printf("--help                     Display a short overview of available options.\n");
+    printf("--version                  Display gfetch version.\n");
+    printf("--logo <path>              Displays the distro logo from a text file.\n");
+    printf("--spacing <value>          Set the space between logo and information. (default: 10).\n");
+    printf("--prompt                   Displays the user and hostname like a prompt.\n");
+    printf("--mem                      Displays the used memory and total memory.\n");
+    printf("--kernel                   Displays the kernel in use.\n");
+    printf("--uptime                   Displays the uptime.\n");
+    printf("--all                      Display all available information.\n");
     printf("Examples:\n");
-    printf("  gfetch --logo arch --all\n");
-}
-
-static const Logo *find_logo(char *distro)
-{
-	for (int i = 0; i < logo_count; i++)
-	{
-		if (strcmp(distro, logos[i].name) == 0)
-		{
-			return &logos[i];
-		}
-	}
-	return NULL;
+    printf("  gfetch --logo ~/mylogo.txt --spacing 30  --all\n");
 }
 
 int main(int argc, char **argv)
 {	
-	char *distro = {0};
-	
+	char *logo_path = NULL;
+	int spacing = 10;
+
 	int show_prompt = 0;
 	int show_mem = 0;
 	int show_kernel = 0;
+	int show_uptime = 0;
 
 	if (argc <= 1)
 	{
@@ -72,11 +64,7 @@ int main(int argc, char **argv)
 				printf("gfetch: --logo requires an argument.\n");
 				return 1;
 			}
-			for (int j = 0; argv[i + 1][j] != '\0'; j++)
-			{
-				argv[i + 1][j] = tolower(argv[i + 1][j]);
-			}
-			distro = argv[i + 1];
+			logo_path = argv[i + 1];
 			i++;
 		}
 		else if (strcmp(argv[i], "--prompt") == 0)
@@ -92,48 +80,81 @@ int main(int argc, char **argv)
 		{
 			show_kernel = 1;
 		}
+		else if (strcmp(argv[i], "--uptime") == 0)
+		{
+			show_uptime = 1;
+		}
 		else if (strcmp(argv[i], "--all") == 0)
 		{
 			show_kernel = 1;
 			show_mem = 1;
 			show_prompt = 1;
+			show_uptime = 1;
+		}
+		else if (strcmp(argv[i], "--spacing") == 0)
+		{
+			if (i + 1 >= argc)
+			{
+				printf("gfetch: --spacing requires an argument.\n");
+				return 1;
+			}
+			spacing = atoi(argv[i + 1]);
+			if (spacing < 0)
+			{
+				printf("gfetch: --spacing must be a non-negative number.\n");
+				return 1;
+			}
+			i++;
 		}
 
 
 		else
 		{
-			printf("gfetch: invalid flag '%s'.\n", argv[1]);
+			printf("gfetch: invalid flag '%s'.\n", argv[i]);
 			printf("Try: 'gfetch --help' for help.\n");
 			return 1;
 		}
 	}
 	
+	/* Today we have 8 lines for info, probably should increase in future, same with the 32 lines for logos  */
+
 	char info_lines[8][128] = {0};
 	int info_count = 0;
 	
-	char logo_lines[16][64];
+	char logo_lines[32][128] = {0}; 
     	int logo_count = 0;
 
 	SystemInfo info = get_info();
 
-	if (show_prompt) snprintf(info_lines[info_count++], 128 , info.prompt);
-	if (show_mem) snprintf(info_lines[info_count++], 128 , info.mem);
-	if (show_kernel) snprintf(info_lines[info_count++], 128, info.kernel);
+	if (show_prompt) snprintf(info_lines[info_count++], PROMPT_BUFFER,    "%s", info.prompt);
+	if (show_mem)    snprintf(info_lines[info_count++], MEMORY_BUFFER,    "%s", info.mem);
+	if (show_kernel) snprintf(info_lines[info_count++], KERNEL_BUFFER,    "%s", info.kernel);
+	if (show_uptime) snprintf(info_lines[info_count++], UPTIME_BUFFER,    "%s", info.uptime);
 
-
-	if (distro != NULL)
-	{	
-		const Logo *logo = find_logo(distro);
-		
-		if (logo == NULL)
+	if (logo_path != NULL)
+	{
+    		FILE *fp = fopen(logo_path, "r");
+    		if (fp == NULL)
 		{
-			printf("gfetch: unknown distro '%s'.\n", distro);
+        		fprintf(stderr, "Could not open %s\n", logo_path);
 			return 1;
 		}
 
-		char buf[512];
-		strncpy(buf, logo->ascii, sizeof(buf) - 1);
-		buf[sizeof(buf) - 1] = '\0';
+    		fseek(fp, 0, SEEK_END);
+    		long size = ftell(fp);
+    		rewind(fp);
+
+    		char *buf = malloc(size + 1);
+    		if (buf == NULL)
+    		{
+        		fclose(fp);
+        		return 1;
+    		}
+
+    		fread(buf, 1, size, fp);
+    		buf[size] = '\0';
+
+    		fclose(fp);	
 		
 		char *line = strtok(buf, "\n");
 		while (line != NULL && logo_count < 16)
@@ -141,18 +162,20 @@ int main(int argc, char **argv)
 			strncpy(logo_lines[logo_count++], line, 63);
 			line = strtok(NULL, "\n");
 		}
+		free(buf);
 	} 
+
 
 	int total_rows = (logo_count > info_count) ? logo_count : info_count;
 	for (int row = 0; row < total_rows; row++)
 	{
 		if (row < logo_count)
 		{
-			printf("%-*s", LOGO_WIDTH, logo_lines[row]);
+			printf("%-*s", spacing, logo_lines[row]);
 		}
 		else
 		{
-			printf("%-*s", LOGO_WIDTH, "");
+			printf("%-*s", spacing, "");
 		}
 		if (row < info_count)
 		{

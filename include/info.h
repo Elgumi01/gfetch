@@ -11,6 +11,9 @@ typedef struct {
 	char mem[MEMORY_BUFFER];
 
 	char kernel[KERNEL_BUFFER];
+
+	double uptime_seconds;
+	char uptime[UPTIME_BUFFER];
 } SystemInfo;
 
 SystemInfo get_info();

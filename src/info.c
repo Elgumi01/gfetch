@@ -14,6 +14,9 @@ typedef struct {
 	char mem[MEMORY_BUFFER];
 
 	char kernel[KERNEL_BUFFER];
+
+	double uptime_seconds;
+	char uptime[UPTIME_BUFFER];
 } SystemInfo;
 
 SystemInfo get_info()
@@ -63,47 +66,102 @@ SystemInfo get_info()
     		return info;
   	}
   
-  	char line[256] = {0};
+  	char memory_line[256] = {0};
   
-	while (fgets(line, sizeof(line), f_memory))
+	while (fgets(memory_line, sizeof(memory_line), f_memory))
 	{
-		if (strncmp(line, "MemTotal:", 9) == 0) 
+		if (strncmp(memory_line, "MemTotal:", 9) == 0) 
 		{
-			sscanf(line, "MemTotal: %llu kB", &info.mem_total);
+			sscanf(memory_line, "MemTotal: %llu kB", &info.mem_total);
     		} 
-		else if (strncmp(line, "MemAvailable:", 9) == 0) 
+		else if (strncmp(memory_line, "MemAvailable:", 9) == 0) 
 		{
-			sscanf(line, "MemAvailable: %llu kB", &info.mem_available);
+			sscanf(memory_line, "MemAvailable: %llu kB", &info.mem_available);
 			break;
     		}
   	}
 
-  	fclose(f_memory);
 	
 	double total_kb = info.mem_total;
 	double used_kb  = info.mem_total - info.mem_available;
 
 	double used;
 	double total;
-	char *unit;
+	char *memory_unit;
 	
 	if ((used_kb / 1024.0) < 1000)
 	{
 		used = used_kb / 1024.0;
 		total = total_kb / 1024.0;
-		unit = "MiB";
+		memory_unit = "MiB";
 	}
 	else
 	{
 		used = used_kb / 1024.0 / 1024.0;
 		total = total_kb / 1024.0 / 1024.0;
-		unit = "GiB";
+		memory_unit = "GiB";
 	}
 
 
 	snprintf(info.mem, sizeof(info.mem),
     	"Memory: %.2f %s / %.2f %s",
-    	used, unit, total, unit);	
+    	used, memory_unit, total, memory_unit);
+	
+ 	/* UPTIME */
 
+	FILE *f_uptime = fopen("/proc/uptime", "r");
+
+  	if (f_uptime == NULL)
+	{
+    		fprintf(stderr, "Error opening /proc/uptime\n");
+    		return info;
+  	}
+
+	if(fscanf(f_uptime, "%lf", &info.uptime_seconds) != 1)
+	{
+    		fprintf(stderr, "Error parsing /proc/uptime\n");
+    		fclose(f_uptime);
+    		return info;
+  	}
+
+	unsigned long long uptime_seconds = (unsigned long long)info.uptime_seconds;
+	
+	if (uptime_seconds >= 86400)
+	{
+		int days = uptime_seconds / 86400;
+		int hours = (uptime_seconds % 86400) / 3600;
+		snprintf(info.uptime, sizeof(info.uptime), 
+		"Uptime: %dd %dh", 
+		days, hours);
+	}
+	else if (uptime_seconds >= 3600)
+	{
+		int hours = uptime_seconds / 3600;
+		int minutes = (uptime_seconds % 3600) / 60;
+		snprintf(info.uptime, sizeof(info.uptime), 
+		"Uptime: %dh %dm", 
+		hours, minutes);
+
+	}
+	else if (uptime_seconds >= 60)
+	{
+		int minutes = uptime_seconds / 60;
+		snprintf(info.uptime, sizeof(info.uptime), 
+		"Uptime: %dm %llds", 
+		minutes, uptime_seconds);
+	}
+	else
+	{
+		snprintf(info.uptime, sizeof(info.uptime), 
+		"Uptime: %llds", 
+		uptime_seconds);
+
+	}
+
+
+	/* OTHERS  */
+	
+	fclose(f_memory);
+	fclose(f_uptime);
 	return info;
 }
