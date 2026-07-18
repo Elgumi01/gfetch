@@ -21,6 +21,7 @@ static void print_help(void)
     printf("--kernel                   Displays the kernel in use.\n");
     printf("--uptime                   Displays the uptime.\n");
     printf("--all                      Display all available information.\n");
+    printf("--os                       Displays the os-release pretty name.\n");
     printf("Examples:\n");
     printf("  gfetch --logo ~/mylogo.txt --spacing 30  --all\n");
 }
@@ -31,9 +32,10 @@ int main(int argc, char **argv)
 	int spacing = 10;
 
 	int show_prompt = 0;
-	int show_mem = 0;
+	int show_mem    = 0;
 	int show_kernel = 0;
 	int show_uptime = 0;
+	int show_os     = 0;
 
 	if (argc <= 1)
 	{
@@ -84,12 +86,18 @@ int main(int argc, char **argv)
 		{
 			show_uptime = 1;
 		}
+		else if (strcmp(argv[i], "--os") == 0)
+		{
+			show_os = 1;
+		}
+
 		else if (strcmp(argv[i], "--all") == 0)
 		{
 			show_kernel = 1;
-			show_mem = 1;
+			show_mem    = 1;
 			show_prompt = 1;
 			show_uptime = 1;
+			show_os     = 1;
 		}
 		else if (strcmp(argv[i], "--spacing") == 0)
 		{
@@ -121,15 +129,16 @@ int main(int argc, char **argv)
 	char info_lines[8][128] = {0};
 	int info_count = 0;
 	
-	char logo_lines[32][128] = {0}; 
+	char logo_lines[LOGO_SIZE][128] = {0}; 
     	int logo_count = 0;
 
 	SystemInfo info = get_info();
 
-	if (show_prompt) snprintf(info_lines[info_count++], PROMPT_BUFFER,    "%s", info.prompt);
-	if (show_mem)    snprintf(info_lines[info_count++], MEMORY_BUFFER,    "%s", info.mem);
-	if (show_kernel) snprintf(info_lines[info_count++], KERNEL_BUFFER,    "%s", info.kernel);
-	if (show_uptime) snprintf(info_lines[info_count++], UPTIME_BUFFER,    "%s", info.uptime);
+	if (show_prompt) snprintf(info_lines[info_count++],     PROMPT_BUFFER,    "%s", info.prompt);
+	if (show_mem)    snprintf(info_lines[info_count++],     MEMORY_BUFFER,    "%s", info.mem);
+	if (show_kernel) snprintf(info_lines[info_count++],     KERNEL_BUFFER,    "%s", info.kernel);
+	if (show_uptime) snprintf(info_lines[info_count++],     UPTIME_BUFFER,    "%s", info.uptime);
+	if (show_os)     snprintf(info_lines[info_count++],     OS_BUFFER,        "%s", info.os);
 
 	if (logo_path != NULL)
 	{
@@ -157,9 +166,9 @@ int main(int argc, char **argv)
     		fclose(fp);	
 		
 		char *line = strtok(buf, "\n");
-		while (line != NULL && logo_count < 16)
+		while (line != NULL && logo_count < LOGO_SIZE)
 		{
-			strncpy(logo_lines[logo_count++], line, 63);
+			strncpy(logo_lines[logo_count++], line, sizeof(logo_lines[0]) - 1);
 			line = strtok(NULL, "\n");
 		}
 		free(buf);

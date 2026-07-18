@@ -10,4 +10,8 @@
 
 #define CHAR_BUFFER 128
 
+#define OS_BUFFER 256
+
+#define LOGO_SIZE 32
+
 #endif

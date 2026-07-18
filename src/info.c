@@ -17,6 +17,8 @@ typedef struct {
 
 	double uptime_seconds;
 	char uptime[UPTIME_BUFFER];
+
+	char os[OS_BUFFER];
 } SystemInfo;
 
 SystemInfo get_info()
@@ -157,11 +159,51 @@ SystemInfo get_info()
 		uptime_seconds);
 
 	}
+	
+	/* OS  */
+
+	FILE *f_os_release = fopen("/etc/os-release", "r");
+	char os_release_line[256];
+
+  	if (f_os_release == NULL)
+	{
+    		fprintf(stderr, "Error opening /proc/os-release\n");
+    		return info;
+  	}
+
+	while(fgets(os_release_line, sizeof(os_release_line), f_os_release))
+	{
+		if (strncmp(os_release_line, "PRETTY_NAME=", 12) == 0)
+		{	
+			char *value = strchr(os_release_line, '=');
+			if (value != NULL)
+			{	
+				value++;
+				char cleaned[256] = {0};
+				char *src = value;
+				char *dst = cleaned;
+				while (*src != '\0' && (dst - cleaned) < (long)sizeof(cleaned) - 1)
+				{
+					if (*src != '"' && *src != '\n')
+					{
+						*dst = *src;
+						dst++;
+					}
+
+					src++;
+				}
+				*dst = '\0';
+				snprintf(info.os, sizeof(info.os), "OS: %.251s", cleaned);
+			}
+			break;
+		}
+	}
 
 
 	/* OTHERS  */
 	
 	fclose(f_memory);
 	fclose(f_uptime);
+	fclose(f_os_release);
 	return info;
 }

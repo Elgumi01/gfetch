@@ -14,6 +14,8 @@ typedef struct {
 
 	double uptime_seconds;
 	char uptime[UPTIME_BUFFER];
+
+	char os[OS_BUFFER];
 } SystemInfo;
 
 SystemInfo get_info();
