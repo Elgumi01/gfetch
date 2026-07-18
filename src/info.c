@@ -148,7 +148,7 @@ SystemInfo get_info()
 		int minutes = uptime_seconds / 60;
 		snprintf(info.uptime, sizeof(info.uptime), 
 		"Uptime: %dm %llds", 
-		minutes, uptime_seconds);
+		minutes, uptime_seconds%60);
 	}
 	else
 	{
