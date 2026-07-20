@@ -1,0 +1,3 @@
+gfetch
+src/*.o
+src/*.d
