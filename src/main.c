@@ -14,6 +14,7 @@ static void print_help(void)
     printf("Minimalist and lightweight fetch\n\n");
     printf("--help                     Display a short overview of available options.\n");
     printf("--version                  Display gfetch version.\n");
+    printf("--color <color>            Change de color of the logo and information. (colors: 1-7).\n");
     printf("--logo <path>              Displays the distro logo from a text file.\n");
     printf("--spacing <value>          Set the space between logo and information. (default: 10).\n");
     printf("--prompt                   Displays the user and hostname like a prompt.\n");
@@ -30,6 +31,9 @@ int main(int argc, char **argv)
 {	
 	char *logo_path = NULL;
 	int spacing = 10;
+	
+	int has_color  = 0;
+	int int_color   = 0;
 
 	int show_prompt = 0;
 	int show_mem    = 0;
@@ -69,6 +73,35 @@ int main(int argc, char **argv)
 			logo_path = argv[i + 1];
 			i++;
 		}
+		else if (strcmp(argv[i], "--color") == 0)
+		{
+			if (i + 1 >= argc)
+			{
+				printf("gfetch: --color requires an argument.\n");
+				return 1;
+			}
+			has_color = 1;
+			char *argv_end = NULL;
+			int_color = strtol(argv[i + 1], &argv_end, 10);
+			if (int_color == 0)
+			{
+				printf("gfetch: --color invalid argument.\n");
+				return 1;
+			}
+			if (int_color < 0)
+			{
+				printf("gfetch: --color must be a non-negative number.\n");
+				return 1;
+			}
+			if (*argv_end != '\0')
+			{
+				printf("gfetch: --color only accept numbers.\n");
+				return 1;
+			}
+			if (int_color)
+			i++;
+		}
+
 		else if (strcmp(argv[i], "--prompt") == 0)
 		{
 			show_prompt = 1;
@@ -126,19 +159,96 @@ int main(int argc, char **argv)
 	
 	/* Today we have 8 lines for info, probably should increase in future, same with the 32 lines for logos  */
 
-	char info_lines[8][128] = {0};
+	char info_lines[8][PROMPT_BUFFER] = {0};
 	int info_count = 0;
 	
 	char logo_lines[LOGO_SIZE][128] = {0}; 
     	int logo_count = 0;
+	
+	/* Amazing colors */
+
+	char *primary_esc = {0};
+	
+	/* Writing the info and checking colors*/
 
 	SystemInfo info = get_info();
+	
+	if (has_color)
+	{
+		switch (int_color)
+		{
+			case 1: // BLACK
+				primary_esc = "\033[30m";
+				break;
+			case 2: // RED
+				primary_esc = "\033[31m";
+				break;
+			case 3: // GREEN
+				primary_esc = "\033[32m";
+				break;
+			case 4: // YELLOW
+				primary_esc = "\033[33m";
+				break;
+			case 5: // BLUE
+				primary_esc = "\033[34m";
+				break;
+			case 6: // MAGENTA
+				primary_esc = "\033[35m";
+				break;
+			case 7: // CYAN
+				primary_esc = "\033[36m";
+				break;
+			case 8: // WHITE
+				primary_esc = "\033[37m";
+				break;
+			default:
+				printf("gfetch: --color argument must be in range.\n");
+				return 1;
+		}	
+	}
+	
+	char *color = !primary_esc ? "" : primary_esc;
+	char *reset = !primary_esc ? "" : "\033[0m";
 
-	if (show_prompt) snprintf(info_lines[info_count++],     PROMPT_BUFFER,    "%s", info.prompt);
-	if (show_mem)    snprintf(info_lines[info_count++],     MEMORY_BUFFER,    "%s", info.mem);
-	if (show_kernel) snprintf(info_lines[info_count++],     KERNEL_BUFFER,    "%s", info.kernel);
-	if (show_uptime) snprintf(info_lines[info_count++],     UPTIME_BUFFER,    "%s", info.uptime);
-	if (show_os)     snprintf(info_lines[info_count++],     OS_BUFFER,        "%s", info.os);
+	if (show_prompt) 
+	{
+		snprintf(info_lines[info_count++],     
+		         PROMPT_BUFFER,
+			 "%s%.110s%s",
+			 color,
+			 info.prompt,
+			 reset);
+		snprintf(info_lines[info_count++],
+			 PROMPT_BUFFER,
+			 "%s%s%s",
+			 color,
+			 "───────────────────────",
+			 reset);
+	}
+	if (show_mem) snprintf(info_lines[info_count++],     
+		         MEMORY_BUFFER,
+			 "%smemory : %s%.235s",
+			 color,
+			 reset,
+			 info.mem);
+	if (show_kernel) snprintf(info_lines[info_count++],     
+		         KERNEL_BUFFER,
+			 "%skernel : %s%.490s",
+			 color,
+			 reset,
+			 info.kernel);
+	if (show_uptime) snprintf(info_lines[info_count++],     
+		         UPTIME_BUFFER,
+			 "%suptime : %s%.100s",
+			 color,
+			 reset,
+			 info.uptime);
+	if (show_os) snprintf(info_lines[info_count++],     
+		         OS_BUFFER,
+			 "%sos     : %s%.490s",
+			 color,
+			 reset,
+			 info.os);
 
 	if (logo_path != NULL)
 	{
@@ -151,6 +261,12 @@ int main(int argc, char **argv)
 
     		fseek(fp, 0, SEEK_END);
     		long size = ftell(fp);
+		if (size < 0)
+		{	
+			fprintf(stderr, "ftell failed");
+			fclose(fp);
+			return 1;
+		}
     		rewind(fp);
 
     		char *buf = malloc(size + 1);
@@ -180,7 +296,7 @@ int main(int argc, char **argv)
 	{
 		if (row < logo_count)
 		{
-			printf("%-*s", spacing, logo_lines[row]);
+			printf("%s%-*s%s", color, spacing, logo_lines[row], reset);
 		}
 		else
 		{

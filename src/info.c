@@ -57,7 +57,7 @@ SystemInfo get_info()
 		return info;
 	}
 
-	snprintf(info.kernel, sizeof(info.kernel), "Kernel: %s", uts.release);
+	snprintf(info.kernel, sizeof(info.kernel), "%s", uts.release);
 	
 	/* MEMORY */
 
@@ -106,7 +106,7 @@ SystemInfo get_info()
 
 
 	snprintf(info.mem, sizeof(info.mem),
-    	"Memory: %.2f %s / %.2f %s",
+    	"%.2f %s / %.2f %s",
     	used, memory_unit, total, memory_unit);
 	
  	/* UPTIME */
@@ -133,7 +133,7 @@ SystemInfo get_info()
 		int days = uptime_seconds / 86400;
 		int hours = (uptime_seconds % 86400) / 3600;
 		snprintf(info.uptime, sizeof(info.uptime), 
-		"Uptime: %dd %dh", 
+		"%dd %dh", 
 		days, hours);
 	}
 	else if (uptime_seconds >= 3600)
@@ -141,7 +141,7 @@ SystemInfo get_info()
 		int hours = uptime_seconds / 3600;
 		int minutes = (uptime_seconds % 3600) / 60;
 		snprintf(info.uptime, sizeof(info.uptime), 
-		"Uptime: %dh %dm", 
+		"%dh %dm", 
 		hours, minutes);
 
 	}
@@ -149,13 +149,13 @@ SystemInfo get_info()
 	{
 		int minutes = uptime_seconds / 60;
 		snprintf(info.uptime, sizeof(info.uptime), 
-		"Uptime: %dm %llds", 
+		"%dm %llds", 
 		minutes, uptime_seconds%60);
 	}
 	else
 	{
 		snprintf(info.uptime, sizeof(info.uptime), 
-		"Uptime: %llds", 
+		"%llds", 
 		uptime_seconds);
 
 	}
@@ -193,7 +193,7 @@ SystemInfo get_info()
 					src++;
 				}
 				*dst = '\0';
-				snprintf(info.os, sizeof(info.os), "OS: %.251s", cleaned);
+				snprintf(info.os, sizeof(info.os), "%s", cleaned);
 			}
 			break;
 		}
