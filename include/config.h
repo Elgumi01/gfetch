@@ -10,7 +10,8 @@
 #define PROMPT_BUFFER 128
 #define MEMORY_BUFFER 256
 #define KERNEL_BUFFER 512
-#define	UPTIME_BUFFER 128
+#define UPTIME_BUFFER 128
 #define OS_BUFFER 512
+#define SHELL_BUFFER 16
 
 #endif
